@@ -1,97 +1,94 @@
-name: Security Testing Pipeline
+name: CI/CD Pipeline with Security Scans
 
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
     branches:
-      - master
+      - main
 
 jobs:
-  secrets_scan:
+  security_scan:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+
+      # Gitleaks - Secrets Scanning
       - name: Install Gitleaks
         run: |
-          wget https://github.com/zricethezav/gitleaks/releases/download/v7.6.0/gitleaks-linux-amd64 -O gitleaks
-          chmod +x gitleaks
-          sudo mv gitleaks /usr/local/bin/
-      - name: Run Gitleaks
-        run: gitleaks detect --source=. --report=gitleaks-report.json
+          wget https://github.com/zricethezav/gitleaks/releases/download/v7.7.0/gitleaks-linux-amd64
+          chmod +x gitleaks-linux-amd64
+          mv gitleaks-linux-amd64 /usr/local/bin/gitleaks
+
+      - name: Run Gitleaks Scan
+        run: |
+          gitleaks detect --source=.
+
       - name: Upload Gitleaks report as artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: gitleaks-report
           path: gitleaks-report.json
 
-  codeql_scan:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      # CodeQL - Static Application Security Testing (SAST)
       - name: Set up CodeQL
-        uses: github/codeql-action/setup-codeql@v1
+        uses: github/codeql-action/setup-codeql@v2
+
       - name: Perform CodeQL Analysis
-        run: codeql analyze --format=sarif-latest --output=codeql-report.sarif
+        uses: github/codeql-action/analyze@v2
+        with:
+          config-file: .github/codeql-config.yml
+
       - name: Upload CodeQL report as artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: codeql-report
-          path: codeql-report.sarif
+          path: codeql-report.json
 
-  snyk_scan:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      # Snyk - Software Composition Analysis (SCA)
       - name: Install Snyk
-        run: npm install -g snyk
-      - name: Run Snyk test
-        run: snyk test --all-projects --json > snyk-report.json
+        run: |
+          npm install -g snyk
+
+      - name: Run Snyk Scan
+        run: |
+          snyk auth ${{ secrets.SNYK_API_KEY }}
+          snyk test
+
       - name: Upload Snyk report as artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: snyk-report
           path: snyk-report.json
 
-  trivy_scan:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      # Trivy - Container Scanning
       - name: Install Trivy
         run: |
-          wget https://github.com/aquasecurity/trivy/releases/download/v0.27.0/trivy_0.27.0_Linux-64bit.deb -O trivy.deb
+          curl -sfL https://github.com/aquasecurity/trivy/releases/download/v0.21.0/trivy_0.21.0_Linux-64bit.deb -o trivy.deb
           sudo dpkg -i trivy.deb
-      - name: Run Trivy on Docker image
-        run: trivy image --format json --output trivy-report.json node:14-alpine
+
+      - name: Run Trivy Scan
+        run: |
+          trivy image node:14-alpine
+
       - name: Upload Trivy report as artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: trivy-report
           path: trivy-report.json
 
-  zap_scan:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Set up OWASP ZAP
+      # ZAP - Dynamic Application Security Testing (DAST)
+      - name: Run ZAP Scan
         run: |
-          wget https://github.com/zaproxy/zaproxy/releases/download/v2.10.0/ZAP_2.10.0_Linux.tar.gz
-          tar -xvzf ZAP_2.10.0_Linux.tar.gz
-          sudo mv zap-2.10.0 /opt/zap
-          export PATH=$PATH:/opt/zap
-      - name: Start ZAP container and scan
-        run: |
-          docker run -d -p 8080:8080 owasp/zap2docker-stable
-          sleep 20
-          zap-baseline.py -t http://localhost:8080 -r zap-report.html
+          docker run -d -p 8080:8080 your-app-image
+          sleep 30  # Wait for the app to be ready
+          docker run --rm owasp/zap2docker-stable zap-baseline.py -t http://localhost:8080 -r zap-report.html
+
       - name: Upload ZAP report as artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: zap-report
           path: zap-report.html
