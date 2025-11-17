@@ -1,0 +1,97 @@
+name: Security Testing Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  secrets_scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Install Gitleaks
+        run: |
+          wget https://github.com/zricethezav/gitleaks/releases/download/v7.6.0/gitleaks-linux-amd64 -O gitleaks
+          chmod +x gitleaks
+          sudo mv gitleaks /usr/local/bin/
+      - name: Run Gitleaks
+        run: gitleaks detect --source=. --report=gitleaks-report.json
+      - name: Upload Gitleaks report as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: gitleaks-report
+          path: gitleaks-report.json
+
+  codeql_scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Set up CodeQL
+        uses: github/codeql-action/setup-codeql@v1
+      - name: Perform CodeQL Analysis
+        run: codeql analyze --format=sarif-latest --output=codeql-report.sarif
+      - name: Upload CodeQL report as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: codeql-report
+          path: codeql-report.sarif
+
+  snyk_scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Install Snyk
+        run: npm install -g snyk
+      - name: Run Snyk test
+        run: snyk test --all-projects --json > snyk-report.json
+      - name: Upload Snyk report as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: snyk-report
+          path: snyk-report.json
+
+  trivy_scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Install Trivy
+        run: |
+          wget https://github.com/aquasecurity/trivy/releases/download/v0.27.0/trivy_0.27.0_Linux-64bit.deb -O trivy.deb
+          sudo dpkg -i trivy.deb
+      - name: Run Trivy on Docker image
+        run: trivy image --format json --output trivy-report.json node:14-alpine
+      - name: Upload Trivy report as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: trivy-report
+          path: trivy-report.json
+
+  zap_scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Set up OWASP ZAP
+        run: |
+          wget https://github.com/zaproxy/zaproxy/releases/download/v2.10.0/ZAP_2.10.0_Linux.tar.gz
+          tar -xvzf ZAP_2.10.0_Linux.tar.gz
+          sudo mv zap-2.10.0 /opt/zap
+          export PATH=$PATH:/opt/zap
+      - name: Start ZAP container and scan
+        run: |
+          docker run -d -p 8080:8080 owasp/zap2docker-stable
+          sleep 20
+          zap-baseline.py -t http://localhost:8080 -r zap-report.html
+      - name: Upload ZAP report as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: zap-report
+          path: zap-report.html
