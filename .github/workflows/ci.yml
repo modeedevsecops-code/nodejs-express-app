@@ -1,101 +1,88 @@
-name: CI/CD Security Pipeline
+name: Security CI/CD Pipeline
 
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
     branches:
-      - master
+      - main
 
 jobs:
-  security_scan:
+  security_scans:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout code
+      # 1. Checkout the code
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Step 2: Gitleaks - Secrets Scanning
+      # 2. Secrets Scanning with Gitleaks
       - name: Install Gitleaks
         run: |
-          echo "Installing Gitleaks..."
-          wget https://github.com/zricethezav/gitleaks/releases/download/v7.7.0/gitleaks-linux-amd64
-          chmod +x gitleaks-linux-amd64
-          mv gitleaks-linux-amd64 /usr/local/bin/gitleaks
+          wget https://github.com/zricethezav/gitleaks/releases/download/v7.7.0/gitleaks-linux-amd64 -O /usr/local/bin/gitleaks
+          chmod +x /usr/local/bin/gitleaks
 
       - name: Run Gitleaks Scan
-        run: |
-          echo "Running Gitleaks scan..."
-          gitleaks detect --source=. --report=gitleaks-report.json
+        run: gitleaks detect --source=. --report=gitleaks-report.json
 
-      - name: Upload Gitleaks report as artifact
+      - name: Upload Gitleaks report
         uses: actions/upload-artifact@v3
         with:
           name: gitleaks-report
           path: gitleaks-report.json
 
-      # Step 3: CodeQL - Static Application Security Testing (SAST)
+      # 3. SAST with CodeQL
       - name: Set up CodeQL
         uses: github/codeql-action/setup-codeql@v2
 
       - name: Run CodeQL Analysis
         uses: github/codeql-action/analyze@v2
-        with:
-          config-file: .github/codeql-config.yml
 
-      - name: Upload CodeQL report as artifact
+      - name: Upload CodeQL report
         uses: actions/upload-artifact@v3
         with:
           name: codeql-report
           path: codeql-report.json
 
-      # Step 4: Snyk - Dependency Scanning (SCA)
+      # 4. SCA with Snyk
       - name: Install Snyk
-        run: |
-          echo "Installing Snyk..."
-          npm install -g snyk
+        run: npm install -g snyk
 
       - name: Run Snyk Scan
-        run: |
-          echo "Running Snyk scan..."
-          snyk auth ${{ secrets.SNYK_API_KEY }}
-          snyk test --all-projects
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_API_KEY }}
+        run: snyk test --all-projects --json-file-output=snyk-report.json
 
-      - name: Upload Snyk report as artifact
+      - name: Upload Snyk report
         uses: actions/upload-artifact@v3
         with:
           name: snyk-report
           path: snyk-report.json
 
-      # Step 5: Trivy - Docker Image Scanning (Container Scanning)
+      # 5. Container Scanning with Trivy
       - name: Install Trivy
         run: |
-          echo "Installing Trivy..."
           curl -sfL https://github.com/aquasecurity/trivy/releases/download/v0.21.0/trivy_0.21.0_Linux-64bit.deb -o trivy.deb
           sudo dpkg -i trivy.deb
 
       - name: Run Trivy Scan
-        run: |
-          echo "Running Trivy scan..."
-          trivy image node:14-alpine --format json --output trivy-report.json
+        run: trivy image node:14-alpine --format json --output trivy-report.json
 
-      - name: Upload Trivy report as artifact
+      - name: Upload Trivy report
         uses: actions/upload-artifact@v3
         with:
           name: trivy-report
           path: trivy-report.json
 
-      # Step 6: ZAP - Dynamic Application Security Testing (DAST)
-      - name: Run ZAP Scan
+      # 6. DAST with OWASP ZAP
+      - name: Run ZAP DAST Scan
         run: |
-          echo "Running ZAP scan..."
           docker run -d -p 8080:8080 your-app-image
-          sleep 30  # Wait for the app to be ready
+          sleep 30
           docker run --rm owasp/zap2docker-stable zap-baseline.py -t http://localhost:8080 -r zap-report.html
 
-      - name: Upload ZAP report as artifact
+      - name: Upload ZAP report
         uses: actions/upload-artifact@v3
         with:
           name: zap-report
