@@ -15,22 +15,23 @@ jobs:
     steps:
       # Checkout code
       - name: Checkout code
-        uses: actions/checkout@v4  # Correct version for the checkout action
+        uses: actions/checkout@v4
 
       # Install and run Gitleaks scan
       - name: Install Gitleaks
         run: |
-          wget https://github.com/zricethezav/gitleaks/releases/download/v7.7.0/gitleaks-linux-amd64 -O /usr/local/bin/gitleaks
+          wget https://github.com/gitleaks/gitleaks/releases/download/v8.2.1/gitleaks-linux-amd64 -O /usr/local/bin/gitleaks
           chmod +x /usr/local/bin/gitleaks
 
       - name: Run Gitleaks Scan
         run: gitleaks detect --source=. --report=gitleaks-report.json
 
       - name: Upload Gitleaks report
-        uses: actions/upload-artifact@v4  # Ensure the latest upload-artifact action is used
+        uses: actions/upload-artifact@v4
         with:
           name: gitleaks-report
           path: gitleaks-report.json
+
 
   # Job for Static Analysis (CodeQL)
   codeql_scan:
