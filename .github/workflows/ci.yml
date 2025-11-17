@@ -9,15 +9,15 @@ on:
       - master
 
 jobs:
-  security_scans:
+  # Job for Secrets Scanning (Gitleaks)
+  gitleaks_scan:
     runs-on: ubuntu-latest
-
     steps:
-      # 1. Checkout the code
+      # Checkout code
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4  # Correct version for the checkout action
 
-      # 2. Secrets Scanning with Gitleaks
+      # Install and run Gitleaks scan
       - name: Install Gitleaks
         run: |
           wget https://github.com/zricethezav/gitleaks/releases/download/v7.7.0/gitleaks-linux-amd64 -O /usr/local/bin/gitleaks
@@ -27,63 +27,94 @@ jobs:
         run: gitleaks detect --source=. --report=gitleaks-report.json
 
       - name: Upload Gitleaks report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4  # Ensure the latest upload-artifact action is used
         with:
           name: gitleaks-report
           path: gitleaks-report.json
 
-      # 3. SAST with CodeQL
+  # Job for Static Analysis (CodeQL)
+  codeql_scan:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v4  # Correct version for the checkout action
+
+      # Set up and run CodeQL analysis
       - name: Set up CodeQL
-        uses: github/codeql-action/setup-codeql@v2
+        uses: github/codeql-action/setup-codeql@v4  # Correct version for CodeQL setup
 
       - name: Run CodeQL Analysis
-        uses: github/codeql-action/analyze@v2
+        uses: github/codeql-action/analyze@v4  # Correct version for CodeQL analysis
 
       - name: Upload CodeQL report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4  # Upload CodeQL report
         with:
           name: codeql-report
           path: codeql-report.json
 
-      # 4. SCA with Snyk
+  # Job for Software Composition Analysis (SCA) with Snyk
+  snyk_scan:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v4  # Correct version for the checkout action
+
+      # Install Snyk CLI
       - name: Install Snyk
         run: npm install -g snyk
 
+      # Run Snyk scan
       - name: Run Snyk Scan
         env:
-          SNYK_TOKEN: ${{ secrets.SNYK_API_KEY }}
+          SNYK_TOKEN: ${{ secrets.SNYK_API_KEY }}  # Ensure your SNYK_API_KEY is set in Secrets
         run: snyk test --all-projects --json-file-output=snyk-report.json
 
       - name: Upload Snyk report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4  # Upload Snyk report
         with:
           name: snyk-report
           path: snyk-report.json
 
-      # 5. Container Scanning with Trivy
+  # Job for Container Scanning (Trivy)
+  trivy_scan:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v4  # Correct version for the checkout action
+
+      # Install Trivy CLI
       - name: Install Trivy
         run: |
-          curl -sfL https://github.com/aquasecurity/trivy/releases/download/v0.21.0/trivy_0.21.0_Linux-64bit.deb -o trivy.deb
-          sudo dpkg -i trivy.deb
+          wget https://github.com/aquasecurity/trivy/releases/download/v0.25.3/trivy_0.25.3_Linux-64bit.tar.gz
+          tar zxvf trivy_0.25.3_Linux-64bit.tar.gz -C /usr/local/bin/
 
+      # Run Trivy container scan
       - name: Run Trivy Scan
-        run: trivy image node:14-alpine --format json --output trivy-report.json
+        run: trivy image --no-progress --exit-code 1 --severity HIGH,CRITICAL node:14-alpine
 
       - name: Upload Trivy report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4  # Upload Trivy report
         with:
           name: trivy-report
           path: trivy-report.json
 
-      # 6. DAST with OWASP ZAP
-      - name: Run ZAP DAST Scan
-        run: |
-          docker run -d -p 8080:8080 your-app-image
-          sleep 30
-          docker run --rm owasp/zap2docker-stable zap-baseline.py -t http://localhost:8080 -r zap-report.html
+  # Job for Dynamic Application Security Testing (DAST) with OWASP ZAP
+  zap_scan:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v4  # Correct version for the checkout action
+
+      # Set up and run ZAP scan
+      - name: Set up OWASP ZAP
+        uses: zaproxy/action-full-scan@v4  # Correct version for OWASP ZAP action
 
       - name: Upload ZAP report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4  # Upload ZAP report
         with:
           name: zap-report
-          path: zap-report.html
+          path: zap-report.json
