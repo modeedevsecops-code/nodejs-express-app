@@ -1,0 +1,32 @@
+# Exclude sensitive files
+.env
+*.env
+
+# Exclude version control and git-related files
+.git
+.gitignore
+
+# Exclude node_modules directory (we'll install dependencies in the image)
+node_modules/
+
+# Exclude test directories and test files (optional for production)
+test/
+tests/
+*.test.js
+*.spec.js
+
+# Exclude log files (optional)
+*.log
+
+# Exclude editor/IDE configuration files
+.vscode/
+.idea/
+
+# Exclude Dockerfile and .dockerignore files themselves
+Dockerfile
+.dockerignore
+
+# Exclude backup and temporary files
+*.swp
+*.bak
+*.tmp
