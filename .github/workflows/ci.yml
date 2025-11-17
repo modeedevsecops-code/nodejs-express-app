@@ -1,4 +1,4 @@
-name: CI/CD Pipeline with Security Scans
+name: CI/CD Security Pipeline
 
 on:
   push:
@@ -13,19 +13,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Checkout code
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Gitleaks - Secrets Scanning
+      # Step 2: Gitleaks - Secrets Scanning
       - name: Install Gitleaks
         run: |
+          echo "Installing Gitleaks..."
           wget https://github.com/zricethezav/gitleaks/releases/download/v7.7.0/gitleaks-linux-amd64
           chmod +x gitleaks-linux-amd64
           mv gitleaks-linux-amd64 /usr/local/bin/gitleaks
 
       - name: Run Gitleaks Scan
         run: |
-          gitleaks detect --source=.
+          echo "Running Gitleaks scan..."
+          gitleaks detect --source=. --report=gitleaks-report.json
 
       - name: Upload Gitleaks report as artifact
         uses: actions/upload-artifact@v3
@@ -33,11 +36,11 @@ jobs:
           name: gitleaks-report
           path: gitleaks-report.json
 
-      # CodeQL - Static Application Security Testing (SAST)
+      # Step 3: CodeQL - Static Application Security Testing (SAST)
       - name: Set up CodeQL
         uses: github/codeql-action/setup-codeql@v2
 
-      - name: Perform CodeQL Analysis
+      - name: Run CodeQL Analysis
         uses: github/codeql-action/analyze@v2
         with:
           config-file: .github/codeql-config.yml
@@ -48,15 +51,17 @@ jobs:
           name: codeql-report
           path: codeql-report.json
 
-      # Snyk - Software Composition Analysis (SCA)
+      # Step 4: Snyk - Dependency Scanning (SCA)
       - name: Install Snyk
         run: |
+          echo "Installing Snyk..."
           npm install -g snyk
 
       - name: Run Snyk Scan
         run: |
+          echo "Running Snyk scan..."
           snyk auth ${{ secrets.SNYK_API_KEY }}
-          snyk test
+          snyk test --all-projects
 
       - name: Upload Snyk report as artifact
         uses: actions/upload-artifact@v3
@@ -64,15 +69,17 @@ jobs:
           name: snyk-report
           path: snyk-report.json
 
-      # Trivy - Container Scanning
+      # Step 5: Trivy - Docker Image Scanning (Container Scanning)
       - name: Install Trivy
         run: |
+          echo "Installing Trivy..."
           curl -sfL https://github.com/aquasecurity/trivy/releases/download/v0.21.0/trivy_0.21.0_Linux-64bit.deb -o trivy.deb
           sudo dpkg -i trivy.deb
 
       - name: Run Trivy Scan
         run: |
-          trivy image node:14-alpine
+          echo "Running Trivy scan..."
+          trivy image node:14-alpine --format json --output trivy-report.json
 
       - name: Upload Trivy report as artifact
         uses: actions/upload-artifact@v3
@@ -80,9 +87,10 @@ jobs:
           name: trivy-report
           path: trivy-report.json
 
-      # ZAP - Dynamic Application Security Testing (DAST)
+      # Step 6: ZAP - Dynamic Application Security Testing (DAST)
       - name: Run ZAP Scan
         run: |
+          echo "Running ZAP scan..."
           docker run -d -p 8080:8080 your-app-image
           sleep 30  # Wait for the app to be ready
           docker run --rm owasp/zap2docker-stable zap-baseline.py -t http://localhost:8080 -r zap-report.html
