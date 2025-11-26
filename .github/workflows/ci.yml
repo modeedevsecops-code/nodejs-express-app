@@ -20,7 +20,7 @@ jobs:
       # Install and run Gitleaks scan
       - name: Install Gitleaks
         run: |
-          wget https://github.com/gitleaks/gitleaks/releases/download/v8.2.1/gitleaks-linux-amd64 -O /usr/local/bin/gitleaks
+          wget https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks-linux-amd64 -O /usr/local/bin/gitleaks
           chmod +x /usr/local/bin/gitleaks
 
       - name: Run Gitleaks Scan
@@ -102,7 +102,7 @@ jobs:
           name: trivy-report
           path: trivy-report.json
 
-  # Job for Dynamic Application Security Testing (DAST) with OWASP ZAP
+  # Job for Dynamic Application Security Testing (DAST) with OWASP ZAP..
   zap_scan:
     runs-on: ubuntu-latest
     steps:
