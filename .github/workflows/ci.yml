@@ -1,4 +1,4 @@
-name: Gitleaks Scan
+name: CodeQL Analysis
 
 on:
   push:
@@ -9,16 +9,16 @@ on:
       - master
 
 jobs:
-  gitleaks:
+  analyze:
+    name: Analyze CodeQL
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      
-      - name: Install Gitleaks
-        run: |
-          curl -sSL https://github.com/zricethezav/gitleaks/releases/download/v8.0.0/gitleaks-linux-amd64.tar.gz | tar -xz
-          sudo mv gitleaks /usr/local/bin
 
-      - name: Run Gitleaks Scan
-        run: gitleaks detect --source=. --config-path=.gitleaks.toml
+      - name: Set up CodeQL
+        uses: github/codeql-action/setup@v2
+
+      - name: Run CodeQL analysis
+        uses: github/codeql-action/analyze@v2
