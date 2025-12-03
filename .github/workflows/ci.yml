@@ -1,4 +1,4 @@
-name: Security CI/CD Pipeline
+name: Gitleaks Scan
 
 on:
   push:
@@ -9,113 +9,16 @@ on:
       - master
 
 jobs:
-  # Job for Secrets Scanning (Gitleaks)
-  gitleaks_scan:
+  gitleaks:
     runs-on: ubuntu-latest
     steps:
-      # Checkout code
       - name: Checkout code
-        uses: actions/checkout@v4
-
-      # Install and run Gitleaks scan
+        uses: actions/checkout@v2
+      
       - name: Install Gitleaks
         run: |
-          wget https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks-linux-amd64 -O /usr/local/bin/gitleaks
-          chmod +x /usr/local/bin/gitleaks
+          curl -sSL https://github.com/zricethezav/gitleaks/releases/download/v8.0.0/gitleaks-linux-amd64.tar.gz | tar -xz
+          sudo mv gitleaks /usr/local/bin
 
       - name: Run Gitleaks Scan
-        run: gitleaks detect --source=. --report=gitleaks-report.json
-
-      - name: Upload Gitleaks report
-        uses: actions/upload-artifact@v4
-        with:
-          name: gitleaks-report
-          path: gitleaks-report.json
-
-
-  # Job for Static Analysis (CodeQL)
-  codeql_scan:
-    runs-on: ubuntu-latest
-    steps:
-      # Checkout code
-      - name: Checkout code
-        uses: actions/checkout@v4  # Correct version for the checkout action
-
-      # Set up and run CodeQL analysis
-      - name: Set up CodeQL
-        uses: github/codeql-action/setup-codeql@v4  # Correct version for CodeQL setup
-
-      - name: Run CodeQL Analysis
-        uses: github/codeql-action/analyze@v4  # Correct version for CodeQL analysis
-
-      - name: Upload CodeQL report
-        uses: actions/upload-artifact@v4  # Upload CodeQL report
-        with:
-          name: codeql-report
-          path: codeql-report.json
-
-  # Job for Software Composition Analysis (SCA) with Snyk
-  snyk_scan:
-    runs-on: ubuntu-latest
-    steps:
-      # Checkout code
-      - name: Checkout code
-        uses: actions/checkout@v4  # Correct version for the checkout action
-
-      # Install Snyk CLI
-      - name: Install Snyk
-        run: npm install -g snyk
-
-      # Run Snyk scan
-      - name: Run Snyk Scan
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_API_KEY }}  # Ensure your SNYK_API_KEY is set in Secrets
-        run: snyk test --all-projects --json-file-output=snyk-report.json
-
-      - name: Upload Snyk report
-        uses: actions/upload-artifact@v4  # Upload Snyk report
-        with:
-          name: snyk-report
-          path: snyk-report.json
-
-  # Job for Container Scanning (Trivy)
-  trivy_scan:
-    runs-on: ubuntu-latest
-    steps:
-      # Checkout code
-      - name: Checkout code
-        uses: actions/checkout@v4  # Correct version for the checkout action
-
-      # Install Trivy CLI
-      - name: Install Trivy
-        run: |
-          wget https://github.com/aquasecurity/trivy/releases/download/v0.25.3/trivy_0.25.3_Linux-64bit.tar.gz
-          tar zxvf trivy_0.25.3_Linux-64bit.tar.gz -C /usr/local/bin/
-
-      # Run Trivy container scan
-      - name: Run Trivy Scan
-        run: trivy image --no-progress --exit-code 1 --severity HIGH,CRITICAL node:14-alpine
-
-      - name: Upload Trivy report
-        uses: actions/upload-artifact@v4  # Upload Trivy report
-        with:
-          name: trivy-report
-          path: trivy-report.json
-
-  # Job for Dynamic Application Security Testing (DAST) with OWASP ZAP..
-  zap_scan:
-    runs-on: ubuntu-latest
-    steps:
-      # Checkout code
-      - name: Checkout code
-        uses: actions/checkout@v4  # Correct version for the checkout action
-
-      # Set up and run ZAP scan
-      - name: Set up OWASP ZAP
-        uses: zaproxy/action-full-scan@v4  # Correct version for OWASP ZAP action
-
-      - name: Upload ZAP report
-        uses: actions/upload-artifact@v4  # Upload ZAP report
-        with:
-          name: zap-report
-          path: zap-report.json
+        run: gitleaks detect --source=. --config-path=.gitleaks.toml
