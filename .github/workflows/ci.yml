@@ -1,4 +1,4 @@
-name: CI Pipeline with Container Scanning (Trivy)
+name: CI Pipeline with DAST (OWASP ZAP)
 
 on:
   push:
@@ -9,34 +9,47 @@ on:
       - '**'  # Runs on pull requests to any branch
 
 jobs:
-  # --- Build and Container Scanning (Trivy) ---
   container-scan:
-    name: Build Docker Image and Scan with Trivy
+    name: Build Docker Image and Scan with OWASP ZAP
     runs-on: ubuntu-latest
+    services:
+      # Start a Docker service with the image for ZAP to target
+      zap:
+        image: owasp/zap2docker-stable
+        options: --network="host"  # Allows ZAP to connect to the host network
+        ports:
+          - 8080:8080  # Expose ZAP port
+        entrypoint: ["zap.sh", "-daemon", "-port", "8080", "-host", "0.0.0.0"]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Docker
-        uses: docker/setup-buildx-action@v2  # Sets up Docker Buildx for multi-platform builds
-
       - name: Build Docker Image
         run: |
-          docker build -t my-app:latest .  # Replace with your image name and tag
+          docker build -t my-app:latest .  # Replace with your Docker image name and tag
 
-      - name: Install Trivy
+      - name: Run Docker Container
         run: |
-          wget https://github.com/aquasecurity/trivy/releases/download/v0.34.0/trivy_0.34.0_Linux-x86_64.tar.gz
-          tar zxvf trivy_0.34.0_Linux-x86_64.tar.gz
-          sudo mv trivy /usr/local/bin/  # Install Trivy globally
+          docker run -d -p 8081:8080 --name my-app-container my-app:latest  # Run the container on port 8081
 
-      - name: Run Trivy Scan on Docker Image
+      - name: Wait for Container to Be Ready
         run: |
-          trivy image --no-progress --exit-code 1 --severity HIGH,CRITICAL my-app:latest  # Adjust severity levels as needed
+          # Wait for the container to be ready and accepting traffic (e.g., HTTP)
+          sleep 30  # Adjust the sleep duration if necessary
 
-      - name: Upload Trivy Scan Results
+      - name: Run OWASP ZAP Scan
+        run: |
+          # Start the ZAP scan on the running container
+          docker exec -t my-app-container zap-baseline.py -t http://localhost:8081  # Target the container's exposed port
+
+      - name: Stop Docker Container
+        run: |
+          docker stop my-app-container
+          docker rm my-app-container
+
+      - name: Upload ZAP Report
         uses: actions/upload-artifact@v3
         with:
-          name: trivy-scan-results
-          path: trivy-results.json  # If you want to store the results for inspection, you can output them into a file
+          name: zap-scan-report
+          path: zap-report.html  # Upload the ZAP report
