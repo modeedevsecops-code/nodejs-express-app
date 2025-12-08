@@ -1,24 +1,21 @@
-name: CodeQL Analysis
+name: CI
 
 on:
   push:
-    branches:
-      - master
   pull_request:
-    branches:
-      - master
 
 jobs:
-  analyze:
-    name: Analyze CodeQL
+  gitleaks:
+    name: Secrets Scanning (Gitleaks)
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # required so Gitleaks can scan full history
 
-      - name: Set up CodeQL
-        uses: github/codeql-action/setup@v2
-
-      - name: Run CodeQL analysis
-        uses: github/codeql-action/analyze@v2
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          args: detect --redact --verbose
