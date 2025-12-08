@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: CI Pipeline with SCA (Snyk)
 
 on:
   push:
@@ -9,34 +9,22 @@ on:
       - '**'  # Runs on pull requests to any branch
 
 jobs:
-  # --- SAST: CodeQL ---
-  codeql:
-    name: CodeQL Static Analysis
+  # --- SCA: Snyk Security Testing ---
+  snyk:
+    name: Snyk Vulnerability Scan
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        language: [ 'javascript', 'typescript' ]  # Remove duplicates and reference languages only once
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up CodeQL
-        uses: github/codeql-action/init@v4
+      - name: Set up Snyk
+        uses: snyk/actions/setup@v2
         with:
-          languages: ${{ matrix.language }}  # Dynamically picks the language from the matrix
+          snyk-token: ${{ secrets.SNYK_TOKEN }}  # Store your Snyk token in GitHub secrets
 
-      - name: Autobuild (if applicable)
-        uses: github/codeql-action/autobuild@v4
-        continue-on-error: true  # Optional: Continue even if autobuild fails (useful for some languages)
+      - name: Run Snyk Test
+        run: snyk test --all-projects  # Scan all project dependencies for vulnerabilities
 
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4
-        continue-on-error: true  # Optional: Continue on error, depending on your workflow preferences
-
-      - name: Upload CodeQL Analysis Results
-        uses: actions/upload-artifact@v3
-        with:
-          name: codeql-report
-          path: ./codeql-results/  # Path to CodeQL results
+      - name: Run Snyk Monitor (Optional)
+        run: snyk monitor --all-projects  # Optional: This sends your dependencies to Snyk to monitor for new vulnerabilities
