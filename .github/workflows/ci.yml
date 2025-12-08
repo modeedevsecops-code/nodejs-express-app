@@ -3,19 +3,34 @@ name: CI
 on:
   push:
   pull_request:
+  schedule:
+    - cron: '0 3 * * 1' # optional: weekly scan
 
 jobs:
-  gitleaks:
-    name: Secrets Scanning (Gitleaks)
+  analyze:
+    name: CodeQL SAST Analysis
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'javascript', 'typescript' ] # adjust based on your repo
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # required so Gitleaks can scan full history
 
-      - name: Run Gitleaks
-        uses: gitleaks/gitleaks-action@v2
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
         with:
-          args: detect --redact --verbose
+          languages: ${{ matrix.language }}
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
