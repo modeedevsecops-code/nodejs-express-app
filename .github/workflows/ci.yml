@@ -9,7 +9,7 @@ on:
       - '**'  # Runs on pull requests to any branch
 
 jobs:
-  # --- SCA: Snyk Security Testing ---
+  # --- SCA: Snyk Vulnerability Scan ---
   snyk:
     name: Snyk Vulnerability Scan
     runs-on: ubuntu-latest
@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Snyk
-        uses: snyk/actions/setup@v2
+        uses: snyk/actions/setup@v3  # Use the correct version v3
         with:
           snyk-token: ${{ secrets.SNYK_TOKEN }}  # Store your Snyk token in GitHub secrets
 
