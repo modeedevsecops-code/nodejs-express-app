@@ -1,0 +1,29 @@
+version: '3'
+services:
+  app:
+    build: .
+    container_name: node-app
+    ports:
+      - "8080:8080"
+    environment:
+      MYSQL_HOST: mysql  # MySQL service name as defined in Docker Compose
+      MYSQL_USER: root
+      MYSQL_PASSWORD: rootpassword
+      MYSQL_DATABASE: mydb
+    depends_on:
+      - mysql
+
+  mysql:
+    image: mysql:5.7
+    container_name: mysql-db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: mydb
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:
+    driver: local
