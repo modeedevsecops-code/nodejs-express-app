@@ -3,10 +3,10 @@ name: Secrets Scanning with Gitleaks
 on:
   push:
     branches:
-      - main  # Run on push to the main branch
+      - master # Run on push to the master branch
   pull_request:
     branches:
-      - main  # Run on pull request targeting the main branch
+      - master  # Run on pull request targeting the master branch
 
 jobs:
   gitleaks:
