@@ -3,10 +3,10 @@ name: CodeQL Analysis
 on:
   push:
     branches:
-      - master  # Run on push to the main branch
+      - main
   pull_request:
     branches:
-      - master  # Run on pull request targeting the main branch
+      - main
 
 jobs:
   analyze:
@@ -20,15 +20,16 @@ jobs:
       - name: Set up CodeQL
         uses: github/codeql-action/setup@v2
         with:
-          languages: javascript  # Language of the project (adjust if needed)
+          languages: javascript  # Analyze JavaScript code
 
-      - name: Run CodeQL analysis
+      - name: Perform CodeQL analysis
         run: |
+          # Initialize the CodeQL database and perform the analysis
           codeql database init --language=javascript --db-dir=./codeql-db
           codeql database analyze ./codeql-db --format=sarif-latest --output=codeql-results.sarif
 
       - name: Upload CodeQL results
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3  # Updated to v3
         with:
           name: codeql-results
           path: codeql-results.sarif
