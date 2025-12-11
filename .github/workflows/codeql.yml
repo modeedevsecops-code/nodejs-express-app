@@ -3,10 +3,10 @@ name: CodeQL Analysis
 on:
   push:
     branches:
-      - main  # Run on push to the main branch
+      - master  # Run on push to the main branch
   pull_request:
     branches:
-      - main  # Run on pull request targeting the main branch
+      - master  # Run on pull request targeting the main branch
 
 jobs:
   analyze:
