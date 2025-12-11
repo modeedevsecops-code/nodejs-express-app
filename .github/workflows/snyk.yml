@@ -1,4 +1,4 @@
-name: Snyk Vulnerability Scanning
+name: Snyk Scan
 
 on:
   push:
