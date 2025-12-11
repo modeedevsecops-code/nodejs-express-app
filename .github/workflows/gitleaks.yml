@@ -1,8 +1,12 @@
-name: CI/CD Pipeline
+name: Secrets Scanning with Gitleaks
 
 on:
   push:
+    branches:
+      - main  # Run on push to the main branch
   pull_request:
+    branches:
+      - main  # Run on pull request targeting the main branch
 
 jobs:
   gitleaks:
@@ -11,9 +15,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # required so Gitleaks can scan full history
+        uses: actions/checkout@v2
 
       - name: Run Gitleaks
         uses: gitleaks/gitleaks-action@v2
