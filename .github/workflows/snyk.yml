@@ -30,7 +30,7 @@ jobs:
 
       # Step 4: Run Snyk test
       - name: Run Snyk test
-        uses: snyk/actions/nodejs@v2
+        uses: snyk/actions@v1  # Correct version (v1) for Snyk action
         with:
           command: test
 
