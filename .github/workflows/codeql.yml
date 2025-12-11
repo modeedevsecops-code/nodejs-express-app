@@ -1,0 +1,48 @@
+name: SAST with CodeQL
+
+on:
+  push:
+    branches:
+      - main  # Trigger on push to the main branch (can modify based on your workflow)
+  pull_request:
+    branches:
+      - main  # Trigger on PR targeting the main branch
+
+jobs:
+  analyze:
+    name: Analyze with CodeQL
+    runs-on: ubuntu-latest  # Use the latest Ubuntu runner
+
+    steps:
+      # Step 1: Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Step 2: Set up CodeQL
+      - name: Set up CodeQL
+        uses: github/codeql-action/setup@v2
+        with:
+          languages: javascript  # Specify JavaScript as the language to analyze
+
+      # Step 3: Initialize CodeQL database
+      - name: Initialize CodeQL database
+        run: |
+          codeql database init --language=javascript --db-dir=./codeql-db
+
+      # Step 4: Perform the CodeQL analysis
+      - name: Run CodeQL analysis
+        run: |
+          codeql database analyze ./codeql-db --format=sarif-latest --output=codeql-results.sarif
+
+      # Step 5: Upload CodeQL analysis results
+      - name: Upload CodeQL results
+        uses: actions/upload-artifact@v2
+        with:
+          name: codeql-results
+          path: codeql-results.sarif  # Path to the SARIF file (CodeQL output)
+
+      # Optional: Upload SARIF results to GitHub Security tab
+      - name: Upload CodeQL results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: codeql-results.sarif  # Upload the SARIF results file to GitHub Security tab
